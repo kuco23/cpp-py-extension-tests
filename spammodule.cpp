@@ -23,9 +23,8 @@ vector<int> getprimesimpl(int n) {
 
 static PyObject* getprimes(PyObject* self, PyObject* args) {
   int n;
-  if (!PyArg_ParseTuple(args, "i", &n)) {
+  if (!PyArg_ParseTuple(args, "i", &n))
     return NULL;
-  }
   vector<int> vec = getprimesimpl(n);
   Py_ssize_t size = vec.size();
   PyObject* result = PyTuple_New(size);
