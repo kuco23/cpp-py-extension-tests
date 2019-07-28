@@ -19,7 +19,8 @@ class HandParser {
     Hand handenum;
     vector<vector<int>> cards;
     vector<int> handbase, kickers;
-    int valnums[13] = {0}, suitnums[4] = {0}, hand[5];
+    vector<int>* handfull[5];
+    int valnums[13] = {0}, suitnums[4] = {0};
 
     HandParser(vector<vector<int>> cards) : cards(cards) {
       sort(this->cards.begin(), this->cards.end());
@@ -33,8 +34,8 @@ class HandParser {
       if (this->handenum != other.handenum)
         return false;
       for (int i = 0; i < 5; i++) {
-        int t_val = this->cards[this->hand[i]][0];
-        int o_val = other.cards[this->hand[i]][0];
+        int t_val = (*(*(this->handfull+i)))[0];
+        int o_val = (*(*(other.handfull+i)))[0];
         if (t_val != o_val)
           return false;
       }
@@ -45,8 +46,8 @@ class HandParser {
       if (this->handenum != other.handenum)
         return this->handenum > other.handenum;
       for (int i = 0; i < 5; i++) {
-        int t_val = this->cards[this->hand[i]][0];
-        int o_val = other.cards[this->hand[i]][0];
+        int t_val = (*(*(this->handfull+i)))[0];
+        int o_val = (*(*(other.handfull+i)))[0];
         if (t_val != o_val)
           return t_val > o_val;
       }
@@ -57,8 +58,8 @@ class HandParser {
       if (this->handenum != other.handenum)
         return this->handenum < other.handenum;
       for (int i = 0; i < 5; i++) {
-        int t_val = this->cards[this->hand[i]][0];
-        int o_val = other.cards[this->hand[i]][0];
+        int t_val = (*(*(this->handfull+i)))[0];
+        int o_val = (*(*(other.handfull+i)))[0];
         if (t_val != o_val)
           return t_val < o_val;
       }
@@ -66,13 +67,12 @@ class HandParser {
     }
 
     void parse() {
-      vector<vector<int>> cardholder;
-      int pairholder[2] = {0,0};
-
+      // base pair data
       int npairs[5] = {0,0,0,0,0};
       for (int i = 0; i < 13; i++)
         npairs[this->valnums[i]]++;
 
+      // base straight / flush data
       int straightstart = this->checkStraight(this->valnums);
       int flushsuit = -1;
       for (int i = 0; i < 4; i++) {
@@ -84,21 +84,22 @@ class HandParser {
 
       // straight flush
       if (straightstart >= 0 && flushsuit != -1) {
+        vector<vector<int>> suited_cards;
         int permut[7] = {0}, suited_vals[13] = {0}, i = 0;
         for (vector<int> card : this->cards) {
           if (card[1] == flushsuit) {
-            permut[cardholder.size()] = i;
+            permut[suited_cards.size()] = i;
             suited_vals[card[0]]++;
-            cardholder.push_back(card);
+            suited_cards.push_back(card);
           }
           i++;
         }
         int sfstart = this->checkStraight(suited_vals);
         if (sfstart != -1) {
           this->handenum = Hand::STRAIGHTFLUSH;
-          vector<int> suited_base = this->getStraightFrom(cardholder, sfstart);
+          vector<int> suited_base = this->getStraightFrom(suited_cards, sfstart);
           for (int i : suited_base) this->handbase.push_back(permut[i]);
-          cardholder.clear();
+          suited_cards.clear();
           return;
         }
       }
@@ -118,26 +119,26 @@ class HandParser {
 
       // full house
       else if (npairs[3] == 2 || npairs[3] == 1 && npairs[2] >= 1) {
-        int num, three = -1, two = -1;
+        int num, three = -1, two = -1, fullpair[2];
         for (int i = 12; i >= 0; i--) {
           num = this->valnums[i];
           if (num == 3 && three == -1) three = i;
           else if (num == 2 && two == -1) two = i;
           else if (num == 3 && three != -1) {
-            pairholder[0] = three;
-            pairholder[1] = i;
+            fullpair[0] = three;
+            fullpair[1] = i;
             break;
           }
           if (two != -1 && three != -1) {
-            pairholder[0] = three;
-            pairholder[1] = two;
+            fullpair[0] = three;
+            fullpair[1] = two;
             break;
           }
         }
         int val, i = 7;
         while (this->handbase.size() < 5) {
           val = this->cards[--i][0];
-          if (val == pairholder[0] || val == pairholder[1])
+          if (val == fullpair[0] || val == fullpair[1])
             this->handbase.push_back(i);
         } this->handenum = Hand::FULLHOUSE;
       }
@@ -175,17 +176,17 @@ class HandParser {
 
       // two pair
       else if (npairs[2] >= 2) {
-        int count = 0;
+        int count = 0, pairs[2];
         for (int i = 12; i >= 0; i--) {
           if (this->valnums[i] == 2) {
-            pairholder[count++] = i;
+            pairs[count++] = i;
             if (count == 2) break;
           }
         }
         int i = 7, val;
         while (this->handbase.size() < 4) {
           val = this->cards[--i][0];
-          if (val == pairholder[0] || val == pairholder[1])
+          if (val == pairs[0] || val == pairs[1])
             this->handbase.push_back(i);
         } this->handenum = Hand::TWOPAIR;
       }
@@ -220,12 +221,12 @@ class HandParser {
         if (!inhand[--i]) this->kickers.push_back(i);
     }
 
-    void getHand() {
+    void getFullHand() {
       int hlen = this->handbase.size(), klen = this->kickers.size();
       for (int i = 0; i < hlen; i++)
-        hand[i] = this->handbase[i];
+        this->handfull[i] = &this->cards[this->handbase[i]];
       for (int i = hlen; i < hlen + klen; i++)
-        hand[i] = this->handbase[i - hlen];
+        this->handfull[i] = &this->cards[this->kickers[i - hlen]];
     }
 
   private:
@@ -244,7 +245,7 @@ class HandParser {
     }
 
     static vector<int>
-    getStraightFrom(vector<vector<int>> cards, int start) {
+    getStraightFrom(const vector<vector<int>>& cards, int start) {
       int len = cards.size();
       bool instraight[13]; vector<int> idxs;
       for (int i = start - 1; i < start + 4; i++) {
@@ -263,24 +264,24 @@ class HandParser {
 
 int main() {
   vector<vector<int> > first {
-    {12,2}, {12,1}, {0,1},
-    {2,1}, {3,1}, {4,2},
-    {1,1}
+    {12,1}, {12,2}, {10,1},
+    {7,2}, {3,1}, {4,2},
+    {1,2}
   };
   vector<vector<int> > sec {
-    {2,1}, {3,2}, {3,1},
-    {0,2}, {11,0}, {5,2},
+    {12,1}, {12,2}, {3,1},
+    {0,2}, {11,0}, {6,2},
     {5,3}
   };
   HandParser* me = new HandParser(first);
   HandParser* you = new HandParser(sec);
   me->parse(); you->parse();
   me->getKickers(); you->getKickers();
-  me->getHand(); you->getHand();
+  me->getFullHand(); you->getFullHand();
 
-  bool win = *me < *you;
   cout << "me " << me->handenum << " you " << you->handenum << endl;
-  cout << win << endl;
+  for (int i = 0; i < 5; i++) cout << "handfull " << (*(*(me->handfull+i)))[0] << endl;
+  bool var = *me < *you;
 
   delete me, you;
   getch();
