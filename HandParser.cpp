@@ -1,37 +1,22 @@
 #include <iostream>
-#include <fstream>
 #include <ctime>
 #include <chrono>
 #include <random>
 
-#include <cstring>
 #include <algorithm>
+#include <utility>
 #include <vector>
 #include <map>
-#include <iterator>
 
 #include <conio.h>
 #include <bits/stdc++.h>
 
+#include "HandParser.h"
+
 using namespace std;
 using namespace std::chrono;
 
-enum Hand {
-  HIGHCARD, ONEPAIR, TWOPAIR, THREEOFAKIND,
-  STRAIGHT, FLUSH, FULLHOUSE, FOUROFAKIND,
-  STRAIGHTFLUSH
-};
-
-static std::map<Hand, int> HAND_LEN = {
-      {Hand::HIGHCARD, 1}, {Hand::ONEPAIR, 2},
-      {Hand::TWOPAIR, 4}, {Hand::THREEOFAKIND, 3},
-      {Hand::STRAIGHT, 5}, {Hand::FLUSH, 5},
-      {Hand::FULLHOUSE, 5}, {Hand::FOUROFAKIND, 4},
-      {Hand::STRAIGHTFLUSH, 5}
-    };
-
-
-static int SUM(int* ar, size_t len) {
+static int SUM(int* const& ar, size_t len) {
   int count = 0;
   for (size_t i = 0; i < len; i++)
     count += *(ar+i);
@@ -60,9 +45,9 @@ class HandParser {
         (*(this->suitnums+card[1]))++;
       }
 
-      int* straightindexes = getStraightIndexes(this->valnums);
+      int* sindexes = getStraightIndexes(this->valnums);
       for (int i = 0; i < 5; i++)
-        *(this->straightindexes+i) = *(straightindexes+i);
+        *(this->straightindexes+i) = *(sindexes+i);
 
       for (int i = 0; i < 4; i++)
         if (*(this->suitnums+i) >= 5) {
@@ -75,8 +60,8 @@ class HandParser {
       if (this->handenum != other.handenum)
         return false;
       for (int i = 0; i < 5; i++) {
-        int t_val = (*(*(this->handfull+i)))[0];
-        int o_val = (*(*(other.handfull+i)))[0];
+        int t_val = (**(this->handfull+i))[0];
+        int o_val = (**(other.handfull+i))[0];
         if (t_val != o_val)
           return false;
       }
@@ -87,8 +72,8 @@ class HandParser {
       if (this->handenum != other.handenum)
         return this->handenum > other.handenum;
       for (int i = 0; i < 5; i++) {
-        int t_val = (*(*(this->handfull+i)))[0];
-        int o_val = (*(*(other.handfull+i)))[0];
+        int t_val = (**(this->handfull+i))[0];
+        int o_val = (**(other.handfull+i))[0];
         if (t_val != o_val)
           return t_val > o_val;
       }
@@ -99,8 +84,8 @@ class HandParser {
       if (this->handenum != other.handenum)
         return this->handenum < other.handenum;
       for (int i = 0; i < 5; i++) {
-        int t_val = (*(*(this->handfull+i)))[0];
-        int o_val = (*(*(other.handfull+i)))[0];
+        int t_val = (**(this->handfull+i))[0];
+        int o_val = (**(other.handfull+i))[0];
         if (t_val != o_val)
           return t_val < o_val;
       }
@@ -108,7 +93,8 @@ class HandParser {
     }
 
     bool setStraightFlush() {
-      int counter = 0, suited_vals[13] = {0}, permut[7] = {0};
+      int counter = 0, permut[7] = {0};
+      int suited_vals[13] = {0};
 
       vector<int>* card;
       for (int i = 0; i < 7; i++) {
@@ -120,7 +106,7 @@ class HandParser {
         }
       }
 
-      int* suited_handbase = this->getStraightIndexes(suited_vals);
+      int* suited_handbase = getStraightIndexes(suited_vals);
       if (*(suited_handbase+4) != -1) {
         this->handenum = Hand::STRAIGHTFLUSH;
         for (int i = 0; i < 5; i++)
@@ -193,7 +179,8 @@ class HandParser {
       for (int i = 0; i < 13; i++) {
         valnum = *(this->valnums+i);
         hindex += valnum;
-        if (valnum == 3) break;
+        if (valnum == 3)
+          break;
       }
 
       for (int i = hindex-2; i <= hindex; i++)
@@ -238,7 +225,7 @@ class HandParser {
     }
 
     void parse() {
-      int npairs[5] = {0,0,0,0,0};
+      int npairs[5] = {0};
       for (int i = 0; i < 13; i++)
         (*(npairs+*(this->valnums+i)))++;
 
@@ -249,7 +236,7 @@ class HandParser {
       else if (npairs[4])
         this->setFourOfAKind();
 
-      else if (npairs[3] == 2 || npairs[3] == 1 && npairs[2] >= 1)
+      else if (npairs[3] == 2 || (npairs[3] == 1 && npairs[2] >= 1))
         this->setFullHouse();
 
       else if (this->flushsuit != -1)
@@ -301,8 +288,7 @@ class HandParser {
 
     static int* getStraightIndexes(int* valnums) {
       static int straightindexes[5];
-
-      for (int i = 0; i < 5; i++) straightindexes[i] = -1;
+      for (int & straightindex : straightindexes) straightindex = -1;
       int straightlen = 1, valnum_sum = SUM(valnums, 13);
       int hindex = valnum_sum;
 
@@ -332,14 +318,15 @@ int main() {
     }
   }
 
+  /*
   double n = pow(10,5);
-  std::srand(time(0));
+  std::srand(time(NULL));
   auto start = high_resolution_clock::now();
 
   for (int i = 0; i < n; i++) {
     in.clear();
     std::random_shuffle(cards.begin(), cards.end());
-    for (int i = 0; i < 7; i++) in.push_back(cards.at(i));
+    for (vector<int>& card : cards) in.push_back(card);
 
     HandParser hand(in);
     hand.parse();
@@ -352,3 +339,4 @@ int main() {
   getch();
   return 0;
 }
+   */
