@@ -1,18 +1,21 @@
-#include <map>
 #include <vector>
 using namespace std;
 
 #ifndef EXTENSIONS_HANDPARSER_H
 #define EXTENSIONS_HANDPARSER_H
 
-enum Hand {HIGHCARD, ONEPAIR,
-        TWOPAIR, THREEOFAKIND,
-        STRAIGHT, FLUSH,
-        FULLHOUSE, FOUROFAKIND,
-        STRAIGHTFLUSH, NONE
+enum Hand {
+    HIGHCARD,
+    ONEPAIR,
+    TWOPAIR,
+    THREEOFAKIND,
+    STRAIGHT,
+    FLUSH,
+    FULLHOUSE,
+    FOUROFAKIND,
+    STRAIGHTFLUSH,
+    NONE
 };
-
-static int SUM(int* const& ar, size_t len);
 
 class HandParser {
 private:
