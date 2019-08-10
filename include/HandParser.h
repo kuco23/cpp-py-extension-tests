@@ -1,8 +1,8 @@
-#include <vector>
-using namespace std;
-
 #ifndef EXTENSIONS_HANDPARSER_H
 #define EXTENSIONS_HANDPARSER_H
+
+#include <vector>
+using std::vector;
 
 enum Hand {
     HIGHCARD,
@@ -19,14 +19,15 @@ enum Hand {
 
 class HandParser {
 private:
+    static const int NCARDS;
     static const int HAND_LEN[9];
     int valnums[13]{}, suitnums[4]{},
     straightindexes[5]{}, flushsuit;
 
 public:
-    Hand handenum;
     vector<vector<int>> cards;
-    vector<int>* handfull[5]{};
+    vector<int> *handfull[5]{};
+    Hand handenum;
     int handbase[5]{};
 
     explicit HandParser(vector<vector<int>> cards);
@@ -48,7 +49,7 @@ public:
     void repr();
 
 private:
-    static int* getStraightIndexes(int* valnums);
+    static int* getStraightIndexes(int *valnums);
 };
 
 #endif //EXTENSIONS_HANDPARSER_H

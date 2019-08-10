@@ -1,16 +1,14 @@
 #include <iostream>
 #include <random>
 #include <algorithm>
-#include <chrono>
 
-#include <conio.h>
-#include "HandParser.h"
+#include "../include/HandParser.h"
+#include "../include/simulation.h"
 
 using std::cout;
 using std::endl;
-using namespace std::chrono;
 
-double simulate(vector<vector<int>> incards, int nsim)
+double py_ext::simulate(vector<vector<int>> incards, int nsim)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -65,15 +63,4 @@ double simulate(vector<vector<int>> incards, int nsim)
     }
 
     return sum / nsim;
-}
-
-int main() {
-    vector<vector<int>> mycards = {{12,0}, {12,1}};
-    auto start = high_resolution_clock::now();
-    cout << simulate(mycards, pow(10, 3)) << endl;
-    auto end = high_resolution_clock::now();
-    duration<double> elapsed = end - start;
-    cout << elapsed.count() << endl;
-    getch();
-    return 0;
 }
