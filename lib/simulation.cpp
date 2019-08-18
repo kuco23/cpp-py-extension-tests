@@ -1,12 +1,10 @@
-#include <iostream>
 #include <random>
 #include <algorithm>
 
 #include "../include/HandParser.h"
 #include "../include/simulation.h"
 
-using std::cout;
-using std::endl;
+using std::vector;
 
 double py_ext::simulate(vector<vector<int>> incards, int nsim)
 {
@@ -14,9 +12,9 @@ double py_ext::simulate(vector<vector<int>> incards, int nsim)
     std::mt19937 gen(rd());
     std::uniform_int_distribution<int> yield_rand(0, 51);
 
-    int counter, rand, sample[15];
-    double sum = 0;
-    bool in_sample[52];
+    double wins = 0;
+    int counter, rand, sample[15]{};
+    bool in_sample[52]{};
 
     vector<vector<int>> cards{};
     for (int i = 0; i < 13; i++)
@@ -31,25 +29,27 @@ double py_ext::simulate(vector<vector<int>> incards, int nsim)
     {
         counter = 0;
         while (counter < 15) {
-            rand = yield_rand(rd);
+            rand = yield_rand(gen);
             if (!*(in_sample + rand)) {
                 *(in_sample + rand) = true;
                 *(sample + counter) = rand;
                 counter++;
             }
         }
-        for (int& i : sample) *(in_sample + i) = false;
 
-        for (int i = 0; i < 5; i++)
-            player_cards[i] = cards[*(sample + i)];
+        for (int& s : sample) *(in_sample + s) = false;
+
+        for (int j = 0; j < 5; j++)
+            player_cards[j] = cards[*(sample + j)];
 
         player_cards[5] = incards[0];
         player_cards[6] = incards[1];
         HandParser inhand = HandParser (player_cards);
         inhand.parse();
 
-        for (int i = 0; i < 5; i++) {
-            counter = 5 + 2 * i;
+        for (int j = 0; j < 5; j++)
+        {
+            counter = 5 + 2 * j;
             player_cards[5] = cards[*(sample + counter)];
             player_cards[6] = cards[*(sample + counter + 1)];
 
@@ -58,9 +58,9 @@ double py_ext::simulate(vector<vector<int>> incards, int nsim)
             if (player_hand > inhand)
                 break;
 
-            if (i == 4) sum++;
+            if (j == 4) wins++;
         }
     }
 
-    return sum / nsim;
+    return wins / nsim;
 }

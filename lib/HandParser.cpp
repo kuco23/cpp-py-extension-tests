@@ -1,14 +1,11 @@
-#include <iostream>
-#include <algorithm>
 #include <vector>
+#include <algorithm>
 #include <numeric>
 
-#include <bits/stdc++.h>
 #include "../include/HandParser.h"
 
 using std::vector;
-using std::cout;
-using std::endl;
+using std::fill;
 using std::accumulate;
 
 // length of base cards according to hand enum (index)
@@ -24,6 +21,7 @@ const int HandParser::NCARDS = 7;
 
 HandParser::HandParser(vector<vector<int>> cards) : cards(std::move(cards)) {
     sort(this->cards.begin(), this->cards.end());
+    this->handenum = Hand::NONE;
 
     for (vector<int> &card : this->cards) {
         (*(this->valnums+card[0]))++;
@@ -39,8 +37,6 @@ HandParser::HandParser(vector<vector<int>> cards) : cards(std::move(cards)) {
             this->flushsuit = i;
             break;
         }
-
-    this->handenum = Hand::NONE;
 }
 
 bool HandParser::operator==(const HandParser &other) {
@@ -50,7 +46,7 @@ bool HandParser::operator==(const HandParser &other) {
         int t_val = (**(this->handfull+i))[0];
         int o_val = (**(other.handfull+i))[0];
         if (t_val != o_val)
-            return false;
+            return t_val > o_val;
     }
     return true;
 }
@@ -80,8 +76,7 @@ bool HandParser::operator<(const HandParser &other) {
 }
 
 bool HandParser::setStraightFlush() {
-    int permut[NCARDS]{}, suited_vals[13]{},
-    count{};
+    int permut[NCARDS]{}, suited_vals[13]{}, count{};
 
     vector<int> *card;
     for (int i = 0; i < 7; i++) {
@@ -106,15 +101,15 @@ bool HandParser::setStraightFlush() {
 void HandParser::setFourOfAKind() {
     this->handenum = Hand::FOUROFAKIND;
 
-    int valnum, hindex = -1, count = 2;
-    for (int i = 0; i < 13; i++) {
+    int valnum, hindex = NCARDS;
+    for (int i = 12; i >= 0; i--) {
         valnum = *(this->valnums+i);
-        hindex += valnum;
+        hindex -= valnum;
         if (valnum == 4) break;
     }
 
-    for (int i = hindex-3; i <= hindex; i++)
-        *(this->handbase+count--) = i;
+    for (int i = 0; i < 3; i++)
+        *(this->handbase+i) = hindex + 3 - i;
 }
 
 void HandParser::setFullHouse() {
@@ -122,11 +117,15 @@ void HandParser::setFullHouse() {
 
     int valnum, two = -1, three = -1, hindex = NCARDS;
     for (int i = 12; i >= 0; i--) {
-        valnum = *(this->valnums+i);
+        valnum = *(this->valnums + i);
         hindex -= valnum;
-        if (valnum == 3) ((three == -1) ? three : two) = hindex;
-        else if (valnum == 2 && two == -1) two = hindex;
-        if (three != -1 && two != -1) break;
+        if (valnum == 3) {
+            ((three == -1) ? three : two) = hindex;
+            if (two != -1) break;
+        } else if (valnum == 2 && two == -1) {
+            two = hindex;
+            if (three != -1) break;
+        }
     }
 
     int idxs[5] = {three+2, three+1, three, two+1, two};
@@ -155,15 +154,16 @@ void HandParser::setStraight() {
 void HandParser::setThreeOfAKind() {
     this->handenum = Hand::THREEOFAKIND;
 
-    int valnum, hindex = -1, count = 2;
-    for (int i = 0; i < 13; i++) {
+    int valnum, hindex = NCARDS;
+    for (int i = 12; i >= 0; i--) {
         valnum = *(this->valnums+i);
-        hindex += valnum;
+        hindex -= valnum;
         if (valnum == 3) break;
     }
 
-    for (int i = hindex-2; i <= hindex; i++)
-        *(this->handbase+count--) = i;
+    for (int i = 0; i < 3; i++) {
+        *(this->handbase+i) = hindex + 2 - i;
+    }
 }
 
 void HandParser::setTwoPair() {
@@ -251,39 +251,29 @@ void HandParser::getKickers() {
 
 void HandParser::getFullHand() {
     for (int i = 0; i < 5; i++)
-        *(this->handfull + i) = &this->cards[*(this->handbase + i)];
+        *(this->handfull+i) = &this->cards[*(this->handbase+i)];
 }
 
 int* HandParser::getStraightIndexes(int *valnums) {
-    static int straightindexes[5] = {-1,-1,-1,-1,-1};
-    int valnum_sum = accumulate(valnums, valnums+13, 0);
-    int straightlen = 1, hindex = valnum_sum;
+    static int straight_ind[5];
+    fill(straight_ind, straight_ind+5, -1);
+    const int ncards = accumulate(valnums, valnums+13, 0);
+    int straightlen = 1, hindex = ncards;
 
     for (int i = 12; i >= 0; i--) {
         hindex -= *(valnums+i);
         if (*(valnums+((i == 0) ? 12 : (i-1))) && *(valnums+i)) {
-            *(straightindexes+straightlen-1) = hindex;
+            *(straight_ind+straightlen-1) = hindex;
             straightlen++;
             if (straightlen == 5) {
                 hindex -= *(valnums+i-1);
-                if (i==0) hindex = valnum_sum-1;
-                *(straightindexes+4) = hindex;
-                return straightindexes;
+                if (i==0) hindex = ncards-1;
+                *(straight_ind+4) = hindex;
+                return straight_ind;
             }
         } else straightlen = 1;
     }
 
-    return straightindexes;
-}
-
-void HandParser::repr() {
-    int hlen = HAND_LEN[static_cast<int>(this->handenum)];
-    cout << "handenum " << this->handenum << endl;
-    for (int i = 0; i < 7; i++)
-        cout << "card " << this->cards[i][0] << " " << this->cards[i][1] << endl;
-    if (this->handenum != Hand::NONE) {
-        for (int i = 0; i < hlen; i++)
-            cout << "handbase " << *(this->handbase + i) << endl;
-    }
+    return straight_ind;
 }
 

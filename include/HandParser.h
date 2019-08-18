@@ -46,7 +46,6 @@ public:
     void parse();
     void getKickers();
     void getFullHand();
-    void repr();
 
 private:
     static int* getStraightIndexes(int *valnums);
